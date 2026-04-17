@@ -23,7 +23,8 @@
       <div class="logo-icon">📊</div>
       <span>BizAnalytics AI</span>
     </div>
-    <ul class="navbar-nav">
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <ul class="navbar-nav" id="navbar-nav">
       <li><a href="dashboard.html">Dashboard</a></li>
       <li><a href="chatbot.html">AI Chatbot</a></li>
       <li><a href="predictions.html" class="active">Predictions</a></li>
@@ -301,6 +302,15 @@
     }
 
     // ── Download CSV ─────────────────────────────────────────
+    document.getElementById('days').addEventListener('change', async (e) => {
+      await loadForecast(e.target.value);
+    });
+
+    // ── Mobile Menu Toggle ───────────────────────────────────
+    document.getElementById("menu-toggle")?.addEventListener("click", () => {
+      document.getElementById("navbar-nav").classList.toggle("show");
+    });
+
     document.getElementById("download-btn").addEventListener("click", () => {
       if (!lastForecast) return showToast("Run a forecast first.", "warn");
       const rows = [["Date", "Predicted Sales (INR)"],

@@ -23,7 +23,8 @@
       <div class="logo-icon">📊</div>
       <span>BizAnalytics AI</span>
     </div>
-    <ul class="navbar-nav">
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <ul class="navbar-nav" id="navbar-nav">
       <li><a href="dashboard.html" class="active">Dashboard</a></li>
       <li><a href="chatbot.html">AI Chatbot</a></li>
       <li><a href="predictions.html">Predictions</a></li>
@@ -297,6 +298,11 @@
       `).join("");
     }
 
+    // ── Mobile Menu Toggle ───────────────────────────────────
+    document.getElementById("menu-toggle")?.addEventListener("click", () => {
+      document.getElementById("navbar-nav").classList.toggle("show");
+    });
+    
     // ── Data table ───────────────────────────────────────────
     function renderTable(records) {
       const recent = records.slice(-20).reverse();

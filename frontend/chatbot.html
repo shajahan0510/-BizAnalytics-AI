@@ -16,7 +16,8 @@
       <div class="logo-icon">📊</div>
       <span>BizAnalytics AI</span>
     </div>
-    <ul class="navbar-nav">
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <ul class="navbar-nav" id="navbar-nav">
       <li><a href="dashboard.html">Dashboard</a></li>
       <li><a href="chatbot.html" class="active">AI Chatbot</a></li>
       <li><a href="predictions.html">Predictions</a></li>
@@ -138,7 +139,7 @@
         appendMessage("bot", formatted);
       } catch (err) {
         typingEl.style.display = "none";
-        appendMessage("bot", "⚠️ Could not reach the Flask API. Make sure <code>python app.py</code> is running on port 5000.");
+        appendMessage("bot", `Connection error: ${err.message}`);
       }
     }
 
