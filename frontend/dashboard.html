@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – AI Business Analytics</title>
+  <meta name="description" content="Real-time business analytics dashboard with KPI cards, trend charts, and AI-powered insights." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body data-page="dashboard">
+  <div class="bg-mesh"></div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <p class="loading-text">Loading analytics data…</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">📊</div>
+      <span>BizAnalytics AI</span>
+    </div>
+    <ul class="navbar-nav">
+      <li><a href="dashboard.html" class="active">Dashboard</a></li>
+      <li><a href="chatbot.html">AI Chatbot</a></li>
+      <li><a href="predictions.html">Predictions</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="nav-user-name">User</span>
+      <div class="avatar" id="nav-avatar">U</div>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="live-badge"><span class="live-dot"></span> Live Data</div>
+      <h1>Business Analytics Dashboard</h1>
+      <p>Real-time insights powered by AI · Auto-refreshes every 60 seconds</p>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="card kpi-card blue">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Total Sales</div>
+        <div class="kpi-value" id="kpi-sales">—</div>
+        <div class="kpi-sub" id="kpi-avg-sales">Loading…</div>
+      </div>
+      <div class="card kpi-card green">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Total Profit</div>
+        <div class="kpi-value" id="kpi-profit">—</div>
+        <div class="kpi-sub" id="kpi-avg-profit">Loading…</div>
+      </div>
+      <div class="card kpi-card purple">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-label">Total Customers</div>
+        <div class="kpi-value" id="kpi-customers">—</div>
+        <div class="kpi-sub" id="kpi-records">Loading…</div>
+      </div>
+      <div class="card kpi-card amber">
+        <div class="kpi-icon">🏆</div>
+        <div class="kpi-label">Best Sales Day</div>
+        <div class="kpi-value" id="kpi-best-day" style="font-size:1.2rem">—</div>
+        <div class="kpi-sub" id="kpi-best-val">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+      <!-- Sales Trend -->
+      <div class="card chart-card" style="grid-column: 1 / -1;">
+        <h3><span class="icon">📉</span> Monthly Sales Trend</h3>
+        <div class="chart-container" style="height:300px;">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Profit Bar -->
+      <div class="card chart-card">
+        <h3><span class="icon">📊</span> Monthly Profit Analysis</h3>
+        <div class="chart-container">
+          <canvas id="profitChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Pie -->
+      <div class="card chart-card">
+        <h3><span class="icon">🛒</span> Sales by Category</h3>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Region Bar -->
+      <div class="card chart-card">
+        <h3><span class="icon">🗺️</span> Sales by Region</h3>
+        <div class="chart-container">
+          <canvas id="regionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Segments -->
+    <div class="card" style="padding:1.5rem; margin-bottom:2rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+        🎯 Customer Segments (K-Means Clustering)
+      </h3>
+      <div class="segment-grid" id="segment-grid">
+        <p style="color:var(--text-muted);">Loading segments…</p>
+      </div>
+    </div>
+
+    <!-- Recent Data Table -->
+    <div class="card" style="padding:1.5rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem;">📋 Recent Sales Records</h3>
+      <div class="data-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Sales (₹)</th>
+              <th>Profit (₹)</th>
+              <th>Customers</th>
+              <th>Region</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body">
+            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Chart instances (for cleanup on refresh)
+    let salesChart, profitChart, catChart, regionChart;
+
+    // ── Load all data ────────────────────────────────────────
+    async function loadDashboard() {
+      try {
+        const [analytics, segments, rawData] = await Promise.all([
+          apiFetch("/api/analytics"),
+          apiFetch("/api/segments"),
+          apiFetch("/api/data"),
+        ]);
+        renderKPIs(analytics.summary);
+        renderCharts(analytics);
+        renderSegments(segments.segments);
+        renderTable(rawData.data);
+        document.getElementById("loading-overlay").classList.add("hidden");
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loading-overlay").innerHTML =
+          `<p style="color:var(--accent-coral);">⚠️ Could not connect to the Flask API.<br>Make sure <code>python app.py</code> is running.</p>`;
+      }
+    }
+
+    // ── KPI cards ────────────────────────────────────────────
+    function renderKPIs(s) {
+      document.getElementById("kpi-sales").textContent    = formatCurrency(s.total_sales);
+      document.getElementById("kpi-avg-sales").textContent= `Avg/day: ${formatCurrency(s.avg_daily_sales)}`;
+      document.getElementById("kpi-profit").textContent   = formatCurrency(s.total_profit);
+      document.getElementById("kpi-avg-profit").textContent=`Avg/day: ${formatCurrency(s.avg_daily_profit)}`;
+      document.getElementById("kpi-customers").textContent= formatNumber(s.total_customers);
+      document.getElementById("kpi-records").textContent  = `${s.record_count} records`;
+      document.getElementById("kpi-best-day").textContent = s.best_sales_day;
+      document.getElementById("kpi-best-val").textContent = formatCurrency(s.best_sales_value);
+    }
+
+    // ── Charts ───────────────────────────────────────────────
+    function renderCharts(d) {
+      const monthly  = d.monthly_trend;
+      const labels   = monthly.map(r => r.date);
+      const sales    = monthly.map(r => r.sales);
+      const profits  = monthly.map(r => r.profit);
+
+      // Destroy old instances
+      [salesChart, profitChart, catChart, regionChart].forEach(c => c?.destroy());
+
+      // 1. Sales line chart
+      salesChart = new Chart(document.getElementById("salesChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Monthly Sales (₹)",
+            data: sales,
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59,130,246,0.10)",
+            pointBackgroundColor: "#3b82f6",
+            pointRadius: 5,
+            fill: true,
+            tension: 0.4,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "top" } },
+          scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` } },
+          }
+        }
+      });
+
+      // 2. Profit bar chart
+      profitChart = new Chart(document.getElementById("profitChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Profit (₹)",
+            data: profits,
+            backgroundColor: "rgba(16,185,129,0.70)",
+            borderColor: "#10b981",
+            borderWidth: 1,
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "top" } },
+          scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` } },
+          }
+        }
+      });
+
+      // 3. Category pie
+      const catLabels = Object.keys(d.category_split);
+      const catData   = Object.values(d.category_split);
+      catChart = new Chart(document.getElementById("categoryChart"), {
+        type: "doughnut",
+        data: {
+          labels: catLabels,
+          datasets: [{
+            data: catData,
+            backgroundColor: ["rgba(59,130,246,0.8)", "rgba(139,92,246,0.8)", "rgba(16,185,129,0.8)", "rgba(245,158,11,0.8)"],
+            borderColor: "rgba(255,255,255,0.10)",
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "right" } },
+          cutout: "60%",
+        }
+      });
+
+      // 4. Region bar
+      const regLabels = Object.keys(d.region_split);
+      const regData   = Object.values(d.region_split);
+      regionChart = new Chart(document.getElementById("regionChart"), {
+        type: "bar",
+        data: {
+          labels: regLabels,
+          datasets: [{
+            label: "Sales by Region (₹)",
+            data: regData,
+            backgroundColor: ["rgba(59,130,246,0.7)", "rgba(139,92,246,0.7)", "rgba(6,182,212,0.7)", "rgba(244,63,94,0.7)"],
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          indexAxis: "y",
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { color:"rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` } } }
+        }
+      });
+    }
+
+    // ── Segments ─────────────────────────────────────────────
+    function renderSegments(segments) {
+      const colors = ["rgba(59,130,246,0.15)", "rgba(16,185,129,0.15)", "rgba(245,158,11,0.15)"];
+      const borders= ["rgba(59,130,246,0.4)",  "rgba(16,185,129,0.4)",  "rgba(245,158,11,0.4)"];
+      document.getElementById("segment-grid").innerHTML = segments.map((s, i) => `
+        <div class="segment-pill" style="background:${colors[i]}; border-color:${borders[i]};">
+          <h4>${["💎", "🥈", "🥉"][i]} ${s.name}</h4>
+          <p>${s.count} records</p>
+          <p>Avg Sales: ₹${s.avg_sales.toLocaleString()}</p>
+          <p>Avg Customers: ${s.avg_customers}</p>
+        </div>
+      `).join("");
+    }
+
+    // ── Data table ───────────────────────────────────────────
+    function renderTable(records) {
+      const recent = records.slice(-20).reverse();
+      document.getElementById("data-table-body").innerHTML = recent.map(r => `
+        <tr>
+          <td>${r.date}</td>
+          <td>₹${Number(r.sales).toLocaleString()}</td>
+          <td>₹${Number(r.profit).toLocaleString()}</td>
+          <td>${Number(r.customers).toLocaleString()}</td>
+          <td>${r.region || "—"}</td>
+          <td>${r.product_category || "—"}</td>
+        </tr>
+      `).join("");
+    }
+
+    // ── Init + Real-time SSE ──────────────────────────────────
+    loadDashboard();
+    
+    function toggleFlash(elId) {
+      const el = document.getElementById(elId);
+      if (el) {
+        el.classList.remove("flash-update");
+        void el.offsetWidth; // trigger reflow
+        el.classList.add("flash-update");
+      }
+    }
+
+    // Connect to Live Serverless API
+    setInterval(async () => {
+      try {
+        const res = await fetch(API_BASE + "/api/live_event");
+        if (!res.ok) return;
+        const newSale = await res.json();
+        console.log("Live stream event:", newSale);
+        
+        // 1. Instantly prepend new row to table with animation
+        const tbody = document.getElementById("data-table-body");
+        const tr = document.createElement("tr");
+        tr.className = "new-row";
+        tr.innerHTML = `
+          <td><span class="live-badge" style="padding:2px 6px; font-size:0.65rem; margin-right:4px;">NEW</span> ${newSale.date}</td>
+          <td>₹${Number(newSale.sales).toLocaleString()}</td>
+          <td>₹${Number(newSale.profit).toLocaleString()}</td>
+          <td>${Number(newSale.customers).toLocaleString()}</td>
+          <td>${newSale.region}</td>
+          <td>${newSale.product_category}</td>
+        `;
+        tbody.insertBefore(tr, tbody.firstChild);
+        if (tbody.children.length > 20) tbody.removeChild(tbody.lastChild);
+        
+        // 2. Add to KPIs locally to simulate real-time without re-fetching entire dashboard dataset
+        // (Since Vercel is read-only, we just update the UI statelessly)
+        const kValue = (id) => parseFloat(document.getElementById(id).textContent.replace(/[^0-9.-]+/g,""));
+        const formatK = (val) => "₹" + (val/1000000).toFixed(2) + "M";
+        
+        document.getElementById("kpi-sales").textContent = formatK((kValue("kpi-sales")*1000000) + newSale.sales);
+        document.getElementById("kpi-profit").textContent = formatK((kValue("kpi-profit")*1000000) + newSale.profit);
+        
+        // Flash the KPI values green to show they updated
+        toggleFlash("kpi-sales");
+        toggleFlash("kpi-profit");
+        
+      } catch (err) {
+        console.error("Live streaming polling error:", err);
+      }
+    }, 8000); // Poll every 8 seconds
+  </script>
+</body>
+</html>

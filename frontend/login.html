@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – AI Business Analytics</title>
+  <meta name="description" content="Sign in to access the AI Business Analytics dashboard." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="login">
+  <div class="bg-mesh"></div>
+
+  <div class="auth-page">
+    <div class="card auth-card">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="logo-icon-lg">📊</div>
+        <h1>AI Business Analytics</h1>
+        <p>Sign in to your analytics dashboard</p>
+      </div>
+
+      <!-- Error / Success -->
+      <div id="alert" class="alert alert-error"></div>
+
+      <!-- Login Form -->
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="you@company.com" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.85rem;">
+          Sign In →
+        </button>
+      </form>
+
+      <div class="auth-divider">or continue with demo</div>
+
+      <!-- Demo login -->
+      <button id="demo-btn" class="btn btn-outline" style="width:100%; justify-content:center; padding:0.85rem;">
+        🚀 Use Demo Account
+      </button>
+
+      <div class="auth-link">
+        Don't have an account? <a href="register.html">Create one</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // ── Supabase SDK (CDN) ──
+    // Loaded inline so login page works without a server
+    const SB_SCRIPT = document.createElement("script");
+    SB_SCRIPT.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+    document.head.appendChild(SB_SCRIPT);
+
+    const form    = document.getElementById("login-form");
+    const alertEl = document.getElementById("alert");
+    const demoBtn = document.getElementById("demo-btn");
+
+    function showAlert(msg, type = "error") {
+      alertEl.textContent = msg;
+      alertEl.className = `alert alert-${type} show`;
+    }
+
+    // ── Demo login (no Supabase needed) ──────────────────────
+    demoBtn.addEventListener("click", () => {
+      saveSession("demo@analytics.ai");
+      window.location.href = "dashboard.html";
+    });
+
+    // ── Real Supabase login ───────────────────────────────────
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) return showAlert("Please fill in all fields.");
+
+      // If Supabase is not configured, fall back to demo mode
+      if (SUPABASE_CONFIG.url.includes("YOUR_PROJECT_ID")) {
+        saveSession(email);
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      try {
+        // Wait for the Supabase SDK to load
+        await new Promise(r => { if (window.supabase) r(); else SB_SCRIPT.onload = r; });
+        const client = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (error) return showAlert(error.message);
+        saveSession(data.user.email);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        showAlert("Connection error. Using local mode.");
+        saveSession(email);
+        window.location.href = "dashboard.html";
+      }
+    });
+  </script>
+</body>
+</html>

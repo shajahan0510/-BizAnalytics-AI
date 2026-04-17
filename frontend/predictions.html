@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predictions – AI Business Analytics</title>
+  <meta name="description" content="AI-powered 30-day sales forecast using Linear Regression and customer segmentation via K-Means." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body data-page="predictions">
+  <div class="bg-mesh"></div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <p class="loading-text">Training ML models…</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">📊</div>
+      <span>BizAnalytics AI</span>
+    </div>
+    <ul class="navbar-nav">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="chatbot.html">AI Chatbot</a></li>
+      <li><a href="predictions.html" class="active">Predictions</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="nav-user-name">User</span>
+      <div class="avatar" id="nav-avatar">U</div>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="live-badge"><span class="live-dot"></span> ML Engine Active</div>
+      <h1>AI Sales Predictions</h1>
+      <p>Linear Regression forecasting · K-Means customer segmentation · Scikit-learn powered</p>
+    </div>
+
+    <!-- Forecast Controls -->
+    <div class="card forecast-card" style="margin-bottom:1.5rem;">
+      <div class="forecast-header">
+        <h3><span>🔮</span> Sales Forecast</h3>
+        <div class="forecast-controls">
+          <label for="days-select" style="color:var(--text-secondary); font-size:0.85rem;">Forecast period:</label>
+          <select id="days-select">
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="60">60 days</option>
+            <option value="90">90 days</option>
+          </select>
+          <button class="btn btn-primary" id="run-forecast-btn">Run Forecast</button>
+        </div>
+      </div>
+
+      <!-- Forecast KPIs -->
+      <div class="kpi-grid" id="forecast-kpis" style="margin-bottom:1.5rem;">
+        <div class="card kpi-card blue">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-label">Forecast Period</div>
+          <div class="kpi-value" id="f-days" style="font-size:1.5rem;">—</div>
+          <div class="kpi-sub">days ahead</div>
+        </div>
+        <div class="card kpi-card green">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-label">Avg Predicted Sales</div>
+          <div class="kpi-value" id="f-avg">—</div>
+          <div class="kpi-sub">per day</div>
+        </div>
+        <div class="card kpi-card amber">
+          <div class="kpi-icon">⬆️</div>
+          <div class="kpi-label">Peak Predicted</div>
+          <div class="kpi-value" id="f-max">—</div>
+          <div class="kpi-sub">highest day</div>
+        </div>
+        <div class="card kpi-card purple">
+          <div class="kpi-icon">⬇️</div>
+          <div class="kpi-label">Min Predicted</div>
+          <div class="kpi-value" id="f-min">—</div>
+          <div class="kpi-sub">lowest day</div>
+        </div>
+      </div>
+
+      <!-- Forecast Chart -->
+      <div class="chart-container" style="height:320px;">
+        <canvas id="forecastChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Model Info Card -->
+    <div class="card" style="padding:1.5rem; margin-bottom:1.5rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1rem;">🧠 Model Information</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:1rem;">
+        <div style="padding:1rem; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:12px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Algorithm</div>
+          <div style="font-weight:700; color:var(--accent-blue);">Linear Regression</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">Scikit-learn</div>
+        </div>
+        <div style="padding:1rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Feature</div>
+          <div style="font-weight:700; color:var(--accent-green);">Day Index</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">StandardScaler normalised</div>
+        </div>
+        <div style="padding:1rem; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:12px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Training Data</div>
+          <div style="font-weight:700; color:var(--accent-amber);">100 Records</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">Jan – Apr 2024</div>
+        </div>
+        <div style="padding:1rem; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2); border-radius:12px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Segmentation</div>
+          <div style="font-weight:700; color:var(--accent-purple);">K-Means (k=3)</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">Customer clustering</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Segments Section -->
+    <div class="card" style="padding:1.5rem; margin-bottom:1.5rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem;">🎯 K-Means Customer Segmentation</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:center;" id="segments-section">
+        <div id="segments-list">
+          <p style="color:var(--text-muted);">Loading segments…</p>
+        </div>
+        <div class="chart-container" style="height:260px;">
+          <canvas id="segmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forecast Data Table -->
+    <div class="card" style="padding:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="font-size:1rem; font-weight:600;">📋 Forecast Table</h3>
+        <button class="btn btn-outline" id="download-btn" style="font-size:0.8rem; padding:0.4rem 0.9rem;">
+          ⬇ Download CSV
+        </button>
+      </div>
+      <div class="data-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Predicted Sales (₹)</th>
+              <th>Trend</th>
+            </tr>
+          </thead>
+          <tbody id="forecast-table-body">
+            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Run a forecast to see results…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    let forecastChart, segmentChart;
+    let lastForecast = null;
+
+    // ── Load segments on startup ──────────────────────────────
+    async function loadSegments() {
+      try {
+        const data = await apiFetch("/api/segments");
+        renderSegments(data.segments);
+      } catch {
+        document.getElementById("segments-list").innerHTML =
+          `<p style="color:var(--accent-coral);">⚠️ Could not load segments. Is Flask running?</p>`;
+      }
+    }
+
+    function renderSegments(segments) {
+      const emojis  = ["💎", "🥈", "🥉"];
+      const colors  = ["#3b82f6", "#10b981", "#f59e0b"];
+      const bgColrs = ["rgba(59,130,246,0.12)", "rgba(16,185,129,0.12)", "rgba(245,158,11,0.12)"];
+      const borders = ["rgba(59,130,246,0.30)", "rgba(16,185,129,0.30)", "rgba(245,158,11,0.30)"];
+
+      document.getElementById("segments-list").innerHTML = segments.map((s, i) => `
+        <div style="padding:1rem 1.25rem; margin-bottom:0.75rem; border-radius:12px;
+                    background:${bgColrs[i]}; border:1px solid ${borders[i]};">
+          <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem;">${emojis[i]} ${s.name}</div>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; font-size:0.82rem; color:var(--text-secondary);">
+            <div><span style="color:var(--text-muted);">Count</span><br><strong style="color:var(--text-primary);">${s.count}</strong></div>
+            <div><span style="color:var(--text-muted);">Avg Sales</span><br><strong style="color:${colors[i]};">₹${s.avg_sales.toLocaleString()}</strong></div>
+            <div><span style="color:var(--text-muted);">Avg Profit</span><br><strong style="color:var(--text-primary);">₹${s.avg_profit.toLocaleString()}</strong></div>
+          </div>
+        </div>
+      `).join("");
+
+      // Segment doughnut chart
+      if (segmentChart) segmentChart.destroy();
+      segmentChart = new Chart(document.getElementById("segmentChart"), {
+        type: "doughnut",
+        data: {
+          labels: segments.map(s => s.name),
+          datasets: [{
+            data: segments.map(s => s.count),
+            backgroundColor: bgColrs.map(c => c.replace("0.12","0.7")),
+            borderColor: borders,
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} records` } }
+          },
+          cutout: "55%",
+        }
+      });
+    }
+
+    // ── Run Forecast ─────────────────────────────────────────
+    async function runForecast() {
+      const days = parseInt(document.getElementById("days-select").value);
+      const btn  = document.getElementById("run-forecast-btn");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loader" style="width:16px;height:16px;"></span> Running…`;
+
+      try {
+        const data = await apiFetch(`/api/predict?days=${days}`);
+        lastForecast = data;
+        renderForecast(data);
+        showToast(`✅ ${days}-day forecast generated!`, "success");
+      } catch {
+        showToast("⚠️ Forecast failed. Is Flask running?", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Run Forecast";
+      }
+    }
+
+    function renderForecast(data) {
+      const s = data.summary;
+      const p = data.predictions;
+
+      // KPI cards
+      document.getElementById("f-days").textContent = data.days_ahead;
+      document.getElementById("f-avg").textContent  = formatCurrency(s.avg_predicted_sales);
+      document.getElementById("f-max").textContent  = formatCurrency(s.max_predicted_sales);
+      document.getElementById("f-min").textContent  = formatCurrency(s.min_predicted_sales);
+
+      // Chart
+      if (forecastChart) forecastChart.destroy();
+      forecastChart = new Chart(document.getElementById("forecastChart"), {
+        type: "line",
+        data: {
+          labels: p.map(r => r.date),
+          datasets: [{
+            label: "Predicted Sales (₹)",
+            data: p.map(r => r.predicted_sales),
+            borderColor: "#8b5cf6",
+            backgroundColor: "rgba(139,92,246,0.10)",
+            pointBackgroundColor: "#8b5cf6",
+            pointRadius: 4,
+            fill: true,
+            tension: 0.4,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "top" } },
+          scales: {
+            x: {
+              grid: { color: "rgba(255,255,255,0.05)" },
+              ticks: { maxTicksLimit: 10 }
+            },
+            y: {
+              grid: { color: "rgba(255,255,255,0.05)" },
+              ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` }
+            }
+          }
+        }
+      });
+
+      // Table
+      const avg = s.avg_predicted_sales;
+      document.getElementById("forecast-table-body").innerHTML = p.map((r, i) => {
+        const trend = r.predicted_sales >= avg
+          ? `<span style="color:var(--accent-green);">▲ Above avg</span>`
+          : `<span style="color:var(--accent-coral);">▼ Below avg</span>`;
+        return `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${r.date}</td>
+            <td>₹${r.predicted_sales.toLocaleString()}</td>
+            <td>${trend}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    // ── Download CSV ─────────────────────────────────────────
+    document.getElementById("download-btn").addEventListener("click", () => {
+      if (!lastForecast) return showToast("Run a forecast first.", "warn");
+      const rows = [["Date", "Predicted Sales (INR)"],
+        ...lastForecast.predictions.map(r => [r.date, r.predicted_sales])];
+      const csv = rows.map(r => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `sales_forecast_${lastForecast.days_ahead}days.csv`;
+      a.click();
+    });
+
+    // ── Wire button ───────────────────────────────────────────
+    document.getElementById("run-forecast-btn").addEventListener("click", runForecast);
+
+    // ── Init ─────────────────────────────────────────────────
+    async function init() {
+      await loadSegments();
+      await runForecast();
+      document.getElementById("loading-overlay").classList.add("hidden");
+    }
+
+    init();
+  </script>
+</body>
+</html>

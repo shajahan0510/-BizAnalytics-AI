@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Business Analytics System</title>
+  <meta name="description" content="AI-powered business analytics with real-time dashboard, intelligent chatbot, and machine learning predictions." />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Landing page specific styles */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1rem; border-radius: 999px;
+      background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.30);
+      color: var(--accent-blue); font-size: 0.82rem; font-weight: 600;
+      margin-bottom: 1.75rem;
+      animation: fadeIn 0.6s ease;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -0.03em;
+      max-width: 860px; margin-bottom: 1.25rem;
+      animation: fadeIn 0.8s ease 0.1s both;
+    }
+    .hero h1 span {
+      background: var(--gradient-blue);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.15rem; color: var(--text-secondary); max-width: 560px;
+      line-height: 1.7; margin-bottom: 2.5rem;
+      animation: fadeIn 0.8s ease 0.2s both;
+    }
+    .hero-cta {
+      display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 4rem;
+      animation: fadeIn 0.8s ease 0.3s both;
+    }
+    .hero-cta .btn { padding: 0.85rem 2rem; font-size: 1rem; }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px; width: 100%;
+      animation: fadeIn 0.8s ease 0.4s both;
+    }
+    .feature-card {
+      padding: 2rem;
+      border-radius: 18px;
+      text-align: left;
+      transition: var(--transition);
+    }
+    .feature-card:hover { transform: translateY(-4px); }
+    .feature-icon {
+      font-size: 2.5rem; margin-bottom: 1rem;
+      display: block;
+    }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p  { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+    .tech-strip {
+      margin-top: 4rem;
+      display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;
+      opacity: 0.6; font-size: 0.8rem; color: var(--text-muted);
+    }
+    .tech-strip span {
+      padding: 0.4rem 0.9rem; border: 1px solid var(--border-glass);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body data-page="landing">
+  <div class="bg-mesh"></div>
+
+  <!-- Minimal nav on landing -->
+  <nav class="navbar" style="position:fixed;">
+    <div class="navbar-brand">
+      <div class="logo-icon">📊</div>
+      <span>BizAnalytics AI</span>
+    </div>
+    <div style="display:flex; gap:0.75rem;">
+      <a href="login.html" class="btn btn-outline" style="padding:0.5rem 1.25rem; font-size:0.875rem;">Sign In</a>
+      <a href="register.html" class="btn btn-primary" style="padding:0.5rem 1.25rem; font-size:0.875rem;">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-badge">✨ Final Year Project · AI + ML + Analytics</div>
+    <h1>Business Intelligence<br>Powered by <span>Artificial Intelligence</span></h1>
+    <p class="hero-sub">
+      A full-stack analytics platform with a real-time dashboard, NLP chatbot, and machine learning
+      sales forecasting — built with Flask, Supabase, and Chart.js.
+    </p>
+    <div class="hero-cta">
+      <a href="login.html" class="btn btn-primary">🚀 Launch Dashboard</a>
+      <a href="chatbot.html" class="btn btn-outline">🤖 Try AI Chatbot</a>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="features">
+      <div class="card feature-card" style="border-color:rgba(59,130,246,0.25);">
+        <span class="feature-icon">📊</span>
+        <h3>Real-time Dashboard</h3>
+        <p>KPI cards, Chart.js trend lines, profit analysis, and regional breakdowns — all live from Supabase or CSV.</p>
+      </div>
+      <div class="card feature-card" style="border-color:rgba(139,92,246,0.25);">
+        <span class="feature-icon">🤖</span>
+        <h3>AI Chatbot</h3>
+        <p>NLP-powered chatbot with 14 intent types. Ask anything: total sales, predictions, monthly trends, date lookups.</p>
+      </div>
+      <div class="card feature-card" style="border-color:rgba(16,185,129,0.25);">
+        <span class="feature-icon">🔮</span>
+        <h3>ML Predictions</h3>
+        <p>Linear Regression forecasts future sales up to 90 days. K-Means clusters customers into Premium / Standard / Entry tiers.</p>
+      </div>
+      <div class="card feature-card" style="border-color:rgba(245,158,11,0.25);">
+        <span class="feature-icon">🔐</span>
+        <h3>Secure Auth</h3>
+        <p>Supabase email/password authentication with session management and protected routes on every dashboard page.</p>
+      </div>
+    </div>
+
+    <!-- Tech strip -->
+    <div class="tech-strip">
+      <span>Python Flask</span>
+      <span>Scikit-learn</span>
+      <span>Pandas</span>
+      <span>Chart.js</span>
+      <span>Supabase</span>
+      <span>Linear Regression</span>
+      <span>K-Means Clustering</span>
+      <span>NLP / Regex</span>
+    </div>
+  </section>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // If user is already logged in, redirect to dashboard
+    document.addEventListener("DOMContentLoaded", () => {
+      const session = getSession();
+      if (session && session.loggedIn) {
+        window.location.href = "dashboard.html";
+      }
+    });
+  </script>
+</body>
+</html>
