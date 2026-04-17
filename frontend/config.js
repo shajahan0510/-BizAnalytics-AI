@@ -9,5 +9,6 @@ const SUPABASE_CONFIG = {
   anonKey: "YOUR_SUPABASE_ANON_KEY",            // ← replace
 };
 
-// Flask backend URL (change if running on a different port/host)
-const API_BASE = "http://127.0.0.1:5000";
+// Dynamic API URL: use local Flask server in dev, and relative '/api' in production (Vercel)
+const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API_BASE = isLocalhost ? "http://127.0.0.1:5000" : "";
