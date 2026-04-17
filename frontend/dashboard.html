@@ -331,12 +331,21 @@
     }
 
     // Connect to Live Serverless API
-    setInterval(async () => {
+    let liveUpdatesReceived = 0;
+    const pollInterval = setInterval(async () => {
+      // Automatically stop after exactly 1000 new live datasets
+      if (liveUpdatesReceived >= 1000) {
+        clearInterval(pollInterval);
+        console.log("Live updates stopped automatically after 1000 data events.");
+        return;
+      }
+
       try {
         const res = await fetch(API_BASE + "/api/live_event");
         if (!res.ok) return;
         const newSale = await res.json();
-        console.log("Live stream event:", newSale);
+        liveUpdatesReceived++;
+        console.log("Live stream event:", newSale, `(${liveUpdatesReceived}/1000)`);
         
         // 1. Instantly prepend new row to table with animation
         const tbody = document.getElementById("data-table-body");
