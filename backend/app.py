@@ -11,6 +11,11 @@ from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+import sys
+import os
+# Ensure Vercel can find the backend modules when executing from root
+sys.path.insert(0, os.path.dirname(__file__))
+
 import ml_model
 import chatbot
 import streamer
