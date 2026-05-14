@@ -150,6 +150,38 @@ def live_event():
     event = streamer.generate_single_event()
     return jsonify(event)
 
+
+@app.route("/api/anomalies")
+def anomalies():
+    """Return Isolation Forest anomaly detection results."""
+    result = ml_model.detect_anomalies()
+    return jsonify(result)
+
+
+@app.route("/api/compare")
+def compare():
+    """Compare two values of a dimension (region or category)."""
+    dimension = request.args.get("dimension", "region")
+    val_a = request.args.get("a", "")
+    val_b = request.args.get("b", "")
+    result = ml_model.get_comparative_analytics(dimension, val_a, val_b)
+    return jsonify(result)
+
+
+@app.route("/api/reports")
+def reports():
+    """Return advanced report data: margins, performers, waterfall, growth."""
+    result = ml_model.get_advanced_report()
+    return jsonify(result)
+
+
+@app.route("/api/inventory")
+def inventory():
+    """Return category-wise demand forecast and stock health."""
+    result = ml_model.get_category_forecast()
+    return jsonify(result)
+
+
 # ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import sys
@@ -160,5 +192,10 @@ if __name__ == "__main__":
     print("   Chatbot API   : http://127.0.0.1:5000/api/chat  (POST)")
     print("   Predict API   : http://127.0.0.1:5000/api/predict")
     print("   Segments API  : http://127.0.0.1:5000/api/segments")
-    print("   Live Stream   : http://127.0.0.1:5000/api/stream")
+    print("   Anomalies API : http://127.0.0.1:5000/api/anomalies")
+    print("   Compare API   : http://127.0.0.1:5000/api/compare")
+    print("   Reports API   : http://127.0.0.1:5000/api/reports")
+    print("   Inventory API : http://127.0.0.1:5000/api/inventory")
+    print("   Live Stream   : http://127.0.0.1:5000/api/live_event")
     app.run(debug=False, port=5000)
+

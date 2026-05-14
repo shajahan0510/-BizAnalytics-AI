@@ -26,6 +26,10 @@ INTENTS = [
     (r"average\s+profit|avg\s+profit|mean\s+profit",      "avg_profit"),
     (r"best\s+(day|date)|highest\s+sales|top\s+sales",    "best_day"),
     (r"worst\s+(day|date)|lowest\s+sales|min\s+sales",    "worst_day"),
+    (r"anomal|outlier|unusual|spike|abnormal",            "anomaly"),
+    (r"growth|grow|increase|decline|rate",                "growth"),
+    (r"report|summary|overview|analysis",                 "report"),
+    (r"inventor|stock|restock|demand|velocity",           "inventory"),
     (r"predict|forecast|future|next\s+\d+|upcoming",      "predict"),
     (r"segment|cluster|customer\s+tier|group",            "segment"),
     (r"profit\s+on|sales\s+on|data\s+(for|on)\s+\d{4}",  "date_lookup"),
@@ -78,7 +82,11 @@ def _handle(intent: str, msg: str, df: pd.DataFrame) -> dict:
                 "• *Sales by region*\n"
                 "• *Top product category*\n"
                 "• *Predict future sales*\n"
-                "• *Show customer segments*"
+                "• *Show customer segments*\n"
+                "• *Detect anomalies*\n"
+                "• *Show growth rate*\n"
+                "• *Generate report*\n"
+                "• *Inventory insights*"
             ),
             "data": None,
         }
@@ -211,11 +219,66 @@ def _handle(intent: str, msg: str, df: pd.DataFrame) -> dict:
             "data": result,
         }
 
+    if intent == "anomaly":
+        from ml_model import detect_anomalies
+        result = detect_anomalies()
+        s = result["summary"]
+        return {
+            "reply": (
+                f"🔍 **Anomaly Detection (Isolation Forest):**\n"
+                f"Found **{result['anomaly_count']}** anomalies out of {result['total_records']} records ({result['anomaly_pct']}%)\n"
+                f"Avg anomaly sales: ₹{s['avg_anomaly_sales']:,.0f} vs normal: ₹{s['avg_normal_sales']:,.0f}\n"
+                f"Most anomalous region: **{s['most_anomalous_region']}** | Category: **{s['most_anomalous_category']}**"
+            ),
+            "data": result,
+        }
+
+    if intent == "growth":
+        from ml_model import get_growth_rates
+        result = get_growth_rates()
+        mom = result["monthly_growth"]
+        if mom:
+            latest = mom[-1]
+            rows = "\n".join(
+                f"  {m['period']}: Sales {'+' if m['sales_growth_pct'] > 0 else ''}{m['sales_growth_pct']}% | Profit {'+' if m['profit_growth_pct'] > 0 else ''}{m['profit_growth_pct']}%"
+                for m in mom[-4:]
+            )
+            return {
+                "reply": f"📈 **Monthly Growth Rates (recent):**\n{rows}",
+                "data": result,
+            }
+        return {"reply": "📈 Not enough data to calculate growth rates yet.", "data": None}
+
+    if intent == "report":
+        from ml_model import get_advanced_report
+        result = get_advanced_report()
+        cats = result["category_margins"]
+        top = result["top_performers"][0] if result["top_performers"] else None
+        cat_rows = "\n".join(f"  {c['category']}: Margin {c['profit_margin']}% | ₹{c['total_sales']:,.0f}" for c in cats)
+        top_str = f"\n🏆 Best day: {top['date']} (₹{top['sales']:,.0f})" if top else ""
+        return {
+            "reply": f"📊 **Business Report Summary:**\n\n**Category Margins:**\n{cat_rows}{top_str}",
+            "data": result,
+        }
+
+    if intent == "inventory":
+        from ml_model import get_category_forecast
+        result = get_category_forecast()
+        rows = "\n".join(
+            f"  {c['category']}: Velocity #{c['velocity_rank']} | Trend: {c['forecast_trend']} | Health: {c['stock_health']}\n    → {c['recommendation']}"
+            for c in result["categories"]
+        )
+        return {
+            "reply": f"📋 **Inventory / Stock Insights:**\n{rows}",
+            "data": result,
+        }
+
     # ── fallback ─────────────────────────────────────────────
     return {
         "reply": (
             "🤔 I didn't quite understand that. Try asking:\n"
             "• *total sales*, *total profit*, *predict sales*, *best day*, *monthly trend* …\n"
+            "• *detect anomalies*, *growth rate*, *report summary*, *inventory insights*\n"
             "Type **help** to see all commands."
         ),
         "data": None,

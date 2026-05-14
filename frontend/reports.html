@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports – AI Business Analytics</title>
+  <meta name="description" content="Advanced business reports with profit margins, growth rates, top performers, and comparative analytics." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body data-page="reports">
+  <div class="bg-mesh"></div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <p class="loading-text">Generating reports…</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">📊</div>
+      <span>BizAnalytics AI</span>
+    </div>
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <ul class="navbar-nav" id="navbar-nav">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="chatbot.html">AI Chatbot</a></li>
+      <li><a href="predictions.html">Predictions</a></li>
+      <li><a href="reports.html" class="active">Reports</a></li>
+      <li><a href="inventory.html">Inventory</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="nav-user-name">User</span>
+      <div class="avatar" id="nav-avatar">U</div>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="live-badge"><span class="live-dot"></span> Advanced Analytics</div>
+      <h1>Business Reports</h1>
+      <p>Profit margins · Growth rates · Top performers · Revenue waterfall</p>
+    </div>
+
+    <!-- Anomaly Detection Banner -->
+    <div class="anomaly-banner" id="anomaly-banner" style="display:none;">
+      <div class="anomaly-count" id="anomaly-count">0</div>
+      <div class="anomaly-text">
+        <strong>Anomalies Detected</strong> (Isolation Forest ML)
+        <br><span id="anomaly-detail">Scanning data…</span>
+      </div>
+    </div>
+
+    <!-- Growth Rate Cards -->
+    <div class="card" style="padding:1.5rem; margin-bottom:2rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+        📈 Month-over-Month Growth
+      </h3>
+      <div class="growth-grid" id="growth-grid">
+        <p style="color:var(--text-muted);">Loading growth data…</p>
+      </div>
+    </div>
+
+    <!-- Profit Margin Analysis -->
+    <div class="card" style="padding:1.5rem; margin-bottom:2rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+        💹 Profit Margin by Category
+      </h3>
+      <div class="margin-grid" id="cat-margin-grid">
+        <p style="color:var(--text-muted);">Loading…</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:1.5rem; margin-bottom:2rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+        🗺️ Profit Margin by Region
+      </h3>
+      <div class="margin-grid" id="reg-margin-grid">
+        <p style="color:var(--text-muted);">Loading…</p>
+      </div>
+    </div>
+
+    <!-- Revenue Waterfall Chart -->
+    <div class="card chart-card" style="margin-bottom:2rem;">
+      <h3><span class="icon">🏗️</span> Revenue Waterfall by Category</h3>
+      <div class="chart-container" style="height:300px;">
+        <canvas id="waterfallChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top / Bottom Performers -->
+    <div class="performers-grid">
+      <div class="card" style="padding:1.5rem;">
+        <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+          🏆 Top 5 Sales Days
+        </h3>
+        <div id="top-performers">
+          <p style="color:var(--text-muted);">Loading…</p>
+        </div>
+      </div>
+      <div class="card" style="padding:1.5rem;">
+        <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+          📉 Bottom 5 Sales Days
+        </h3>
+        <div id="bottom-performers">
+          <p style="color:var(--text-muted);">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparative Analytics -->
+    <div class="card" style="padding:1.5rem; margin-bottom:2rem;">
+      <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+        ⚔️ Comparative Analytics
+      </h3>
+      <div class="compare-controls">
+        <select id="compare-dim">
+          <option value="region">By Region</option>
+          <option value="product_category">By Category</option>
+        </select>
+        <select id="compare-a"></select>
+        <span class="vs-badge">VS</span>
+        <select id="compare-b"></select>
+        <button class="btn btn-primary" id="compare-btn">Compare</button>
+      </div>
+      <div class="compare-grid" id="compare-results" style="display:none;"></div>
+      <div class="chart-container" style="height:300px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    let waterfallChart, radarChart;
+
+    // ── Load all report data ─────────────────────────────────
+    async function loadReports() {
+      try {
+        const [report, anomalies] = await Promise.all([
+          apiFetch("/api/reports"),
+          apiFetch("/api/anomalies"),
+        ]);
+        renderGrowth(report.growth);
+        renderMargins(report.category_margins, "cat-margin-grid", "category");
+        renderMargins(report.region_margins, "reg-margin-grid", "region");
+        renderWaterfall(report.waterfall);
+        renderPerformers(report.top_performers, "top-performers", true);
+        renderPerformers(report.bottom_performers, "bottom-performers", false);
+        renderAnomalyBanner(anomalies);
+        initComparison();
+        document.getElementById("loading-overlay").classList.add("hidden");
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loading-overlay").innerHTML =
+          `<p style="color:var(--accent-coral);">⚠️ Could not load reports. Is Flask running?</p>`;
+      }
+    }
+
+    // ── Growth cards ─────────────────────────────────────────
+    function renderGrowth(data) {
+      const mom = data.monthly_growth;
+      if (!mom || mom.length === 0) {
+        document.getElementById("growth-grid").innerHTML = '<p style="color:var(--text-muted);">Not enough data for growth analysis.</p>';
+        return;
+      }
+      document.getElementById("growth-grid").innerHTML = mom.map(m => {
+        const isPos = m.sales_growth_pct >= 0;
+        const arrow = isPos ? "▲" : "▼";
+        return `
+          <div class="card growth-card">
+            <div class="period">${m.period}</div>
+            <div class="growth-value ${isPos ? 'positive' : 'negative'}">${arrow} ${isPos ? '+' : ''}${m.sales_growth_pct}%</div>
+            <div style="font-size:0.82rem; color:var(--text-muted);">
+              Sales: ₹${(m.sales/1000).toFixed(0)}K · Profit: ${m.profit_growth_pct >= 0 ? '+' : ''}${m.profit_growth_pct}%
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // ── Margin cards ─────────────────────────────────────────
+    function renderMargins(margins, targetId, keyField) {
+      const colors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"];
+      document.getElementById(targetId).innerHTML = margins.map((m, i) => {
+        const level = m.profit_margin > 25 ? "high" : (m.profit_margin > 15 ? "medium" : "low");
+        const barColor = colors[i % colors.length];
+        const name = m[keyField] || m.category || m.region;
+        return `
+          <div class="card margin-card">
+            <div class="margin-header">
+              <h4>${name}</h4>
+              <span class="margin-badge ${level}">${m.profit_margin}%</span>
+            </div>
+            <div class="margin-stats">
+              <div><div class="stat-label">Total Sales</div><div class="stat-value">₹${(m.total_sales/1000).toFixed(0)}K</div></div>
+              <div><div class="stat-label">Total Profit</div><div class="stat-value">₹${(m.total_profit/1000).toFixed(0)}K</div></div>
+              <div><div class="stat-label">Records</div><div class="stat-value">${m.record_count}</div></div>
+            </div>
+            <div class="margin-bar-track">
+              <div class="margin-bar-fill" style="width:${Math.min(m.profit_margin * 2, 100)}%; background:${barColor};"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // ── Waterfall chart ──────────────────────────────────────
+    function renderWaterfall(data) {
+      if (waterfallChart) waterfallChart.destroy();
+      const labels = data.map(d => d.label);
+      const colors = data.map((d, i) => 
+        d.label === "Total" ? "rgba(59,130,246,0.8)" : ["rgba(16,185,129,0.7)", "rgba(139,92,246,0.7)", "rgba(245,158,11,0.7)", "rgba(6,182,212,0.7)"][i % 4]
+      );
+      waterfallChart = new Chart(document.getElementById("waterfallChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Revenue (₹)",
+            data: data.map(d => d.value),
+            backgroundColor: colors,
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000000).toFixed(1)}M` } },
+          }
+        }
+      });
+    }
+
+    // ── Performers list ──────────────────────────────────────
+    function renderPerformers(entries, targetId, isTop) {
+      const rankClasses = ["gold", "silver", "bronze", "other", "other"];
+      document.getElementById(targetId).innerHTML = entries.map((e, i) => `
+        <div class="performer-entry">
+          <div class="performer-rank ${rankClasses[i]}">#${i + 1}</div>
+          <div class="performer-info">
+            <div class="date">${e.date}</div>
+            <div class="meta">${e.region} · ${e.product_category}</div>
+          </div>
+          <div class="performer-amount" style="color:${isTop ? 'var(--accent-green)' : 'var(--accent-coral)'};">₹${Number(e.sales).toLocaleString()}</div>
+        </div>
+      `).join("");
+    }
+
+    // ── Anomaly banner ───────────────────────────────────────
+    function renderAnomalyBanner(data) {
+      if (data.anomaly_count > 0) {
+        document.getElementById("anomaly-banner").style.display = "flex";
+        document.getElementById("anomaly-count").textContent = data.anomaly_count;
+        document.getElementById("anomaly-detail").textContent =
+          `${data.anomaly_pct}% of records · Most in ${data.summary.most_anomalous_region} region · ${data.summary.most_anomalous_category} category`;
+      }
+    }
+
+    // ── Comparison ───────────────────────────────────────────
+    async function initComparison() {
+      const dim = document.getElementById("compare-dim").value;
+      try {
+        const data = await apiFetch(`/api/compare?dimension=${dim}`);
+        const vals = data.available_values;
+        const selA = document.getElementById("compare-a");
+        const selB = document.getElementById("compare-b");
+        selA.innerHTML = vals.map(v => `<option value="${v}">${v}</option>`).join("");
+        selB.innerHTML = vals.map(v => `<option value="${v}">${v}</option>`).join("");
+        if (vals.length > 1) selB.value = vals[1];
+      } catch (e) { console.error(e); }
+    }
+
+    async function runComparison() {
+      const dim = document.getElementById("compare-dim").value;
+      const a = document.getElementById("compare-a").value;
+      const b = document.getElementById("compare-b").value;
+      try {
+        const data = await apiFetch(`/api/compare?dimension=${dim}&a=${a}&b=${b}`);
+        const comp = data.comparison;
+        const keys = Object.keys(comp);
+        const metricLabels = ["Total Sales", "Total Profit", "Total Customers", "Avg Sales", "Avg Profit", "Profit Margin"];
+        const metricKeys = ["total_sales", "total_profit", "total_customers", "avg_sales", "avg_profit", "profit_margin"];
+
+        document.getElementById("compare-results").style.display = "grid";
+        document.getElementById("compare-results").innerHTML = keys.map((k, idx) => `
+          <div class="compare-side side-${idx === 0 ? 'a' : 'b'}">
+            <h4>${idx === 0 ? '🔵' : '🟣'} ${k}</h4>
+            ${metricLabels.map((label, i) => {
+              let val = comp[k][metricKeys[i]];
+              if (metricKeys[i] === "profit_margin") val = val + "%";
+              else if (metricKeys[i].includes("customers") || metricKeys[i] === "record_count") val = Number(val).toLocaleString();
+              else val = "₹" + Number(val).toLocaleString();
+              return `<div class="compare-metric"><span class="label">${label}</span><span class="value">${val}</span></div>`;
+            }).join("")}
+          </div>
+        `).join("");
+
+        // Radar chart
+        if (radarChart) radarChart.destroy();
+        const maxVals = metricKeys.map(mk => Math.max(comp[keys[0]][mk], comp[keys[1]][mk]) || 1);
+        radarChart = new Chart(document.getElementById("radarChart"), {
+          type: "radar",
+          data: {
+            labels: metricLabels,
+            datasets: [
+              {
+                label: keys[0],
+                data: metricKeys.map((mk, i) => (comp[keys[0]][mk] / maxVals[i]) * 100),
+                borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.15)",
+                pointBackgroundColor: "#3b82f6",
+              },
+              {
+                label: keys[1],
+                data: metricKeys.map((mk, i) => (comp[keys[1]][mk] / maxVals[i]) * 100),
+                borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.15)",
+                pointBackgroundColor: "#8b5cf6",
+              },
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { r: { ticks: { display: false }, grid: { color: "rgba(255,255,255,0.08)" }, pointLabels: { color: "#94a3b8", font: { size: 11 } } } },
+            plugins: { legend: { position: "top" } },
+          }
+        });
+        showToast(`✅ Compared ${keys[0]} vs ${keys[1]}`, "success");
+      } catch (e) { console.error(e); showToast("⚠️ Comparison failed", "error"); }
+    }
+
+    // ── Events ───────────────────────────────────────────────
+    document.getElementById("compare-btn").addEventListener("click", runComparison);
+    document.getElementById("compare-dim").addEventListener("change", initComparison);
+    document.getElementById("menu-toggle")?.addEventListener("click", () => {
+      document.getElementById("navbar-nav").classList.toggle("show");
+    });
+
+    loadReports();
+  </script>
+</body>
+</html>

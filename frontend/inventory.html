@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Insights – AI Business Analytics</title>
+  <meta name="description" content="AI-driven inventory insights with demand forecasting, stock velocity analysis, and restock recommendations per category." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body data-page="inventory">
+  <div class="bg-mesh"></div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <p class="loading-text">Analyzing inventory data…</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">📊</div>
+      <span>BizAnalytics AI</span>
+    </div>
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <ul class="navbar-nav" id="navbar-nav">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="chatbot.html">AI Chatbot</a></li>
+      <li><a href="predictions.html">Predictions</a></li>
+      <li><a href="reports.html">Reports</a></li>
+      <li><a href="inventory.html" class="active">Inventory</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="nav-user-name">User</span>
+      <div class="avatar" id="nav-avatar">U</div>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="live-badge"><span class="live-dot"></span> ML-Powered Insights</div>
+      <h1>Inventory & Stock Insights</h1>
+      <p>Category velocity · Demand forecasting · Restock recommendations · Stock health</p>
+    </div>
+
+    <!-- Summary KPIs -->
+    <div class="kpi-grid" id="inv-kpis">
+      <div class="card kpi-card blue">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-label">Categories Tracked</div>
+        <div class="kpi-value" id="inv-cat-count">—</div>
+        <div class="kpi-sub">product lines</div>
+      </div>
+      <div class="card kpi-card green">
+        <div class="kpi-icon">🚀</div>
+        <div class="kpi-label">Fastest Seller</div>
+        <div class="kpi-value" id="inv-fastest" style="font-size:1.3rem;">—</div>
+        <div class="kpi-sub" id="inv-fastest-sub">Loading…</div>
+      </div>
+      <div class="card kpi-card amber">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Demand Trend</div>
+        <div class="kpi-value" id="inv-trend" style="font-size:1.3rem;">—</div>
+        <div class="kpi-sub" id="inv-trend-sub">Loading…</div>
+      </div>
+      <div class="card kpi-card purple">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Best Margin</div>
+        <div class="kpi-value" id="inv-best-margin">—</div>
+        <div class="kpi-sub" id="inv-best-margin-sub">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Demand Forecast Chart -->
+    <div class="card chart-card" style="margin-bottom:2rem;">
+      <h3><span class="icon">🔮</span> 30-Day Demand Forecast by Category</h3>
+      <div class="chart-container" style="height:300px;">
+        <canvas id="demandChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Category Velocity Chart -->
+    <div class="charts-grid" style="margin-bottom:2rem;">
+      <div class="card chart-card">
+        <h3><span class="icon">⚡</span> Sales Velocity (Avg Daily)</h3>
+        <div class="chart-container">
+          <canvas id="velocityChart"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <h3><span class="icon">💹</span> Profit Margin by Category</h3>
+        <div class="chart-container">
+          <canvas id="marginChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Cards with Gauges -->
+    <h3 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+      📋 Category-wise Stock Health & Recommendations
+    </h3>
+    <div class="inventory-grid" id="inventory-grid">
+      <p style="color:var(--text-muted);">Loading inventory data…</p>
+    </div>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    let demandChart, velocityChart, marginChart;
+
+    async function loadInventory() {
+      try {
+        const data = await apiFetch("/api/inventory");
+        const cats = data.categories;
+
+        renderKPIs(cats);
+        renderDemandChart(cats);
+        renderVelocityChart(cats);
+        renderMarginChart(cats);
+        renderCategoryCards(cats);
+        document.getElementById("loading-overlay").classList.add("hidden");
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loading-overlay").innerHTML =
+          `<p style="color:var(--accent-coral);">⚠️ Could not load inventory data. Is Flask running?</p>`;
+      }
+    }
+
+    // ── KPIs ─────────────────────────────────────────────────
+    function renderKPIs(cats) {
+      document.getElementById("inv-cat-count").textContent = cats.length;
+      
+      // Fastest seller
+      const fastest = cats[0]; // already sorted by velocity
+      document.getElementById("inv-fastest").textContent = fastest.category;
+      document.getElementById("inv-fastest-sub").textContent = `₹${fastest.avg_daily_sales.toLocaleString()}/day`;
+      
+      // Overall trend
+      const upCount = cats.filter(c => c.forecast_trend === "up").length;
+      const downCount = cats.filter(c => c.forecast_trend === "down").length;
+      if (upCount > downCount) {
+        document.getElementById("inv-trend").innerHTML = '<span style="color:var(--accent-green);">▲ Rising</span>';
+        document.getElementById("inv-trend-sub").textContent = `${upCount} of ${cats.length} categories growing`;
+      } else {
+        document.getElementById("inv-trend").innerHTML = '<span style="color:var(--accent-coral);">▼ Declining</span>';
+        document.getElementById("inv-trend-sub").textContent = `${downCount} of ${cats.length} categories declining`;
+      }
+
+      // Best margin
+      const bestMargin = cats.reduce((best, c) => c.profit_margin > best.profit_margin ? c : best, cats[0]);
+      document.getElementById("inv-best-margin").textContent = bestMargin.profit_margin + "%";
+      document.getElementById("inv-best-margin-sub").textContent = bestMargin.category;
+    }
+
+    // ── Demand Forecast Chart ────────────────────────────────
+    function renderDemandChart(cats) {
+      if (demandChart) demandChart.destroy();
+      const colors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e"];
+      
+      demandChart = new Chart(document.getElementById("demandChart"), {
+        type: "bar",
+        data: {
+          labels: cats.map(c => c.category),
+          datasets: [
+            {
+              label: "Current Avg Daily (₹)",
+              data: cats.map(c => c.avg_daily_sales),
+              backgroundColor: "rgba(59,130,246,0.6)",
+              borderRadius: 6,
+            },
+            {
+              label: "Forecast 30d Avg (₹)",
+              data: cats.map(c => c.forecast_30d_avg),
+              backgroundColor: "rgba(139,92,246,0.6)",
+              borderRadius: 6,
+            },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "top" } },
+          scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` } },
+          }
+        }
+      });
+    }
+
+    // ── Velocity Chart ───────────────────────────────────────
+    function renderVelocityChart(cats) {
+      if (velocityChart) velocityChart.destroy();
+      const sorted = [...cats].sort((a, b) => b.avg_daily_sales - a.avg_daily_sales);
+      velocityChart = new Chart(document.getElementById("velocityChart"), {
+        type: "bar",
+        data: {
+          labels: sorted.map(c => c.category),
+          datasets: [{
+            label: "Avg Daily Sales (₹)",
+            data: sorted.map(c => c.avg_daily_sales),
+            backgroundColor: ["rgba(59,130,246,0.7)", "rgba(16,185,129,0.7)", "rgba(245,158,11,0.7)", "rgba(139,92,246,0.7)"],
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          indexAxis: "y",
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => `₹${(v/1000).toFixed(0)}K` } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" } },
+          }
+        }
+      });
+    }
+
+    // ── Margin Chart ─────────────────────────────────────────
+    function renderMarginChart(cats) {
+      if (marginChart) marginChart.destroy();
+      marginChart = new Chart(document.getElementById("marginChart"), {
+        type: "doughnut",
+        data: {
+          labels: cats.map(c => `${c.category} (${c.profit_margin}%)`),
+          datasets: [{
+            data: cats.map(c => c.profit_margin),
+            backgroundColor: ["rgba(59,130,246,0.7)", "rgba(16,185,129,0.7)", "rgba(245,158,11,0.7)", "rgba(139,92,246,0.7)"],
+            borderColor: "rgba(255,255,255,0.10)",
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "right" } },
+          cutout: "55%",
+        }
+      });
+    }
+
+    // ── Category Cards with Stock Gauges ─────────────────────
+    function renderCategoryCards(cats) {
+      const icons = { "Electronics": "💻", "Clothing": "👕", "Food": "🍕" };
+      const circumference = 2 * Math.PI * 34;
+      
+      document.getElementById("inventory-grid").innerHTML = cats.map(c => {
+        const icon = icons[c.category] || "📦";
+        const healthPct = c.stock_health === "good" ? 85 : (c.stock_health === "fair" ? 55 : 25);
+        const dashoffset = circumference - (healthPct / 100) * circumference;
+        const trendIcon = c.forecast_trend === "up" ? "▲" : (c.forecast_trend === "down" ? "▼" : "→");
+        const rankClass = c.velocity_rank <= 3 ? `rank-${c.velocity_rank}` : "";
+        
+        return `
+          <div class="card inventory-card">
+            <div class="cat-header">
+              <h4>${icon} ${c.category}</h4>
+              <span class="velocity-badge ${rankClass}">Velocity #${c.velocity_rank}</span>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:1.5rem; margin-bottom:1.25rem;">
+              <div class="stock-gauge-wrap">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle class="stock-gauge-bg" cx="40" cy="40" r="34"/>
+                  <circle class="stock-gauge-fill ${c.stock_health}" cx="40" cy="40" r="34"
+                    stroke-dasharray="${circumference}"
+                    stroke-dashoffset="${dashoffset}"/>
+                </svg>
+                <div class="stock-gauge-label" style="color:var(--accent-${c.stock_health === 'good' ? 'green' : (c.stock_health === 'fair' ? 'amber' : 'coral')});">${c.stock_health}</div>
+              </div>
+              <div>
+                <div class="trend-arrow ${c.forecast_trend}">
+                  ${trendIcon} Demand ${c.forecast_trend}
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.3rem;">
+                  Margin: ${c.profit_margin}%
+                </div>
+              </div>
+            </div>
+            
+            <div class="inv-stats">
+              <div class="stat">
+                <div class="stat-label">Total Sales</div>
+                <div class="stat-value">₹${(c.total_sales/1000).toFixed(0)}K</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Avg Daily</div>
+                <div class="stat-value">₹${c.avg_daily_sales.toLocaleString()}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Forecast Avg</div>
+                <div class="stat-value">₹${c.forecast_30d_avg.toLocaleString()}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Records</div>
+                <div class="stat-value">${c.record_count}</div>
+              </div>
+            </div>
+            
+            <div class="restock-rec ${c.restock_urgency}">
+              ${c.recommendation}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // ── Events ───────────────────────────────────────────────
+    document.getElementById("menu-toggle")?.addEventListener("click", () => {
+      document.getElementById("navbar-nav").classList.toggle("show");
+    });
+
+    loadInventory();
+  </script>
+</body>
+</html>
